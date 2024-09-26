@@ -50,6 +50,10 @@ def recommend(id):
 
     product_ids = ', '.join(map(str, product_ids))
 
+    if len(product_ids) == 0:
+        return [], 200
+
+
     #แสดงรายการสินค้าที่ต้องการแนะนำ
     sql = f'SELECT * FROM product WHERE productID IN ({product_ids})'
     if not conn.is_connected():
@@ -59,5 +63,6 @@ def recommend(id):
     # Return the result
     return products.to_dict(orient='records'), 200
 
+# Create Web server
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=3000)
+    app.run(debug=True, host='0.0.0.0', port=5000)
