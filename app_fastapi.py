@@ -1,8 +1,9 @@
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
 from sklearn.neighbors import NearestNeighbors
 import mysql.connector as sql
 import pandas as pd
+import os
 import warnings
 
 # Suppress warnings
@@ -65,6 +66,24 @@ async def recommend(id: int):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/product/image/{filename}")
+async def get_product_image(filename: str):
+
+    # Directory containing product images
+    IMAGE_DIR = os.path.join(os.path.dirname(__file__), 'assets/product')
+
+    # Construct the file path
+    filepath = os.path.join(IMAGE_DIR, filename)
+
+    # Check if the file is not exist
+    if not os.path.exists(filepath):
+        raise HTTPException(status_code=404, detail="Image not found")
+
+    # Return the image file
+    return FileResponse(filepath)
+
 
 
 # Create Web server

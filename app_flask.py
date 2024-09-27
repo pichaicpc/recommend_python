@@ -1,7 +1,8 @@
-from flask import Flask
+from flask import Flask,send_file, abort
 from sklearn.neighbors import NearestNeighbors
 import mysql.connector as sql
 import pandas as pd
+import os
 import warnings
 
 # Suppress warnings
@@ -62,6 +63,24 @@ def recommend(id):
 
     # Return the result
     return products.to_dict(orient='records'), 200
+
+
+@app.route("/api/product/image/<filename>")
+def get_product_image(filename):
+
+    # Directory containing product images
+    IMAGE_DIR = os.path.join(os.path.dirname(__file__), 'assets/product')
+
+    # Construct the file path
+    filepath = os.path.join(IMAGE_DIR, filename)
+
+    # Check if the file exists
+    if not os.path.exists(filepath):
+        abort(404, description="Image not found")
+
+    # Return the image file
+    return send_file(filepath)
+
 
 # Create Web server
 if __name__ == '__main__':
