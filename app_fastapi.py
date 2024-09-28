@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse, FileResponse
 from sklearn.neighbors import NearestNeighbors
-import mysql.connector as sql
+import mysql.connector as mysql
 import pandas as pd
 import os
 import warnings
@@ -12,21 +12,33 @@ warnings.filterwarnings("ignore")
 # Create the FastAPI app
 app = FastAPI()
 
-# Connect to the database
-conn = sql.connect(
-    host="localhost",
-    database="shopdee",
-    user="root",
-    password="1234"
-)
+# Define function to create a MySQL connection
+def get_db_connection():
+    try:
+        conn = mysql.connect(
+            host="localhost",
+            database="shopdee",
+            user="root",
+            password="1234"
+        )
+        if conn.is_connected():
+            return conn
+        else:
+            raise Exception("Failed to connect to MySQL")
+    except mysql.Error as err:
+        raise HTTPException(status_code=500, 
+        detail=f"MySQL connection error: {str(err)}") 
+
 
 # Define the API endpoint
 @app.get('/api/recommend/{id}')
 async def recommend(id: int):
+    # Establish connection
+    conn = get_db_connection()  
     try:
         # Load data
-        sql_query = "CALL GetProductCountsAndIDs()"
-        x = pd.read_sql(sql_query, conn, index_col=['custID'])
+        sql = "CALL GetProductCountsAndIDs()"
+        x = pd.read_sql(sql, conn, index_col=['custID'])
 
         # Define prediction data (test data in production) and training data
         x_login_user = x[x.index == id]  # prediction data
@@ -56,17 +68,18 @@ async def recommend(id: int):
             return JSONResponse(content=[])
 
         # Fetch recommended products
-        sql_query = f'SELECT * FROM product WHERE productID IN ({product_ids})'
+        sql = f'SELECT * FROM product WHERE productID IN ({product_ids})'
         if not conn.is_connected():
             conn.reconnect()
-        products = pd.read_sql(sql_query, conn)
+        products = pd.read_sql(sql, conn)
 
         # Return the result
         return JSONResponse(content=products.to_dict(orient='records'))
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
+    finally:
+        conn.close()
 
 @app.get("/api/product/image/{filename}")
 async def get_product_image(filename: str):
